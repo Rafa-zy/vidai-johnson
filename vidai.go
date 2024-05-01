@@ -47,7 +47,7 @@ func New(cfg *Config) *Client {
 }
 
 // Generate generates a video from an image and a text prompt.
-func (c *Client) Generate(ctx context.Context, image, text, output string,
+func (c *Client) Generate_With_Image(ctx context.Context, image, text, output string,
 	extend int, interpolate, upscale, watermark bool) (string, string, error) {
 	b, err := os.ReadFile(image)
 	if err != nil {
@@ -83,6 +83,43 @@ func (c *Client) Generate(ctx context.Context, image, text, output string,
 	}
 
 	// Download video
+	if videoPath != "" {
+		if err := c.download(ctx, videoURL, videoPath); err != nil {
+			return "", "", fmt.Errorf("vidai: couldn't download video: %w", err)
+		}
+	}
+
+	return id, videoURL, nil
+}
+
+// Generate generates a video solely based on a text prompt.
+func (c *Client) Generate(ctx context.Context, text, output string,
+	extend int, interpolate, upscale, watermark bool) (string, string, error) {
+
+	// Directly use an empty imageURL since no image is required
+	imageURL := ""
+
+	// Generate initial video based only on text
+	id, videoURL, err := c.client.Generate(ctx, imageURL, text, interpolate, upscale, watermark, false)
+	if err != nil {
+		return "", "", fmt.Errorf("vidai: couldn't generate video: %w", err)
+	}
+
+	// Extend video if required
+	for i := 0; i < extend; i++ {
+		id, videoURL, err = c.client.Generate(ctx, videoURL, "", interpolate, upscale, watermark, true)
+		if err != nil {
+			return "", "", fmt.Errorf("vidai: couldn't extend video: %w", err)
+		}
+	}
+
+	// Determine the output file path, using a temporary file if no specific output is set
+	videoPath := output
+	if videoPath == "" && extend > 0 {
+		videoPath = filepath.Join(os.TempDir(), fmt.Sprintf("%s.mp4", id)) // Use generated video ID to create a unique file name
+	}
+
+	// Download the video to the specified path
 	if videoPath != "" {
 		if err := c.download(ctx, videoURL, videoPath); err != nil {
 			return "", "", fmt.Errorf("vidai: couldn't download video: %w", err)

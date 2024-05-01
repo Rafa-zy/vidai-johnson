@@ -20,3 +20,6 @@ bin
 .vscode
 *.conf
 logs/
+
+# 
+debug*

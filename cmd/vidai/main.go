@@ -114,7 +114,9 @@ func newGenerateCommand() *ffcli.Command {
 				return fmt.Errorf("image or text is required")
 			}
 			c := vidai.New(&cfg)
-			id, u, err := c.Generate(ctx, *image, *text, *output, *extend,
+			// id, u, err := c.Generate(ctx, *image, *text, *output, *extend,
+			// 	*interpolate, *upscale, *watermark)
+			id, u, err := c.Generate(ctx, *text, *output, *extend,
 				*interpolate, *upscale, *watermark)
 			if err != nil {
 				return err
